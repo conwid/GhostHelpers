@@ -46,7 +46,7 @@ module.exports = function top(options) {
 				'start-date': startDate,
 				'end-date': 'today',
 				'metrics': 'ga:pageviews',
-				'dimensions':'ga:pagePath,ga:pageTitle',
+				'dimensions':'ga:pagePath',
 				'sort':'-ga:pageViews',                                                 
 				'filters':'ga:pagePath!@/tag/;ga:pagePath!@/page/;ga:pagePath!=/;ga:pageTitle!=(not set);ga:pagePath!@&',
                 'max-results':maxItems
