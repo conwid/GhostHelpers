@@ -1,4 +1,5 @@
 const { google } = require('googleapis');
+const proxy = require('./proxy');
 
 // https://stackoverflow.com/questions/5366849/convert-1-to-0001-in-javascript
 function padLeft(nr, n, str){
@@ -28,7 +29,9 @@ module.exports = function top(options) {
 		var startDate = weekStart.getFullYear()+'-'+padLeft(currentMonth)+'-'+padLeft(weekStart.getDate());		
 	} else if (interval=='allTime') {
 		var startDate='2005-01-01';
-	}	
+	} else {
+		return "Invalid value for the interval parameter";
+	}
 	var scopes = ['https://www.googleapis.com/auth/analytics.readonly'];		
 	var key = {
 		client_email:process.env.GA_CLIENT_EMAIL, 
@@ -48,11 +51,24 @@ module.exports = function top(options) {
 				'filters':'ga:pagePath!@/tag/;ga:pagePath!@/page/;ga:pagePath!=/;ga:pageTitle!=(not set);ga:pagePath!@&',
                 'max-results':maxItems
          }).then(function(resp) {
-                 var data=[];	
-                 var result='';
-                 resp.data.rows.forEach(  (row) => { data.push( { 'postUrl':row[0], 'postTitle':row[1], 'viewCount':row[2] } );  } );		
-                 data.forEach( (item) => { result = result + options.fn(item); });
-				 return result; 
+                 var data=[];	                 
+				 resp.data.rows.forEach(  row =>  data.push( { 'slug':row[0].slice(1,-1), 'viewCount':row[2] } ) );
+				 
+				 var slugs = [];
+				 resp.data.rows.forEach(  row =>  slugs.push( row[0].slice(1,-1) )   );
+				 var slugFilter = "slug:["+slugs.join()+"]";				 
+
+				 apiOptions = {				
+					include: 'author,authors,tags',					
+					limit: 'all',					
+					filter: slugFilter
+				};
+
+				return proxy.api.posts.browse(apiOptions).then(function (resp2) {										
+					resp2.posts.forEach( post => { post.viewCount = data.find ( element => element.slug==post.slug ).viewCount; });
+					resp2.posts.sort((a,b) => b.viewCount-a.viewCount);
+					return resp2.posts.reduce((buffer,element)=>buffer+options.fn(element), '');						
+				});								                 
 			}).catch(function(err) { 
 				return err.toString();
 			});								
