@@ -52,22 +52,25 @@ module.exports = function top(options) {
                 'max-results':maxItems
          }).then(function(resp) {
                  var data=[];	                 
-				 resp.data.rows.forEach(  row =>  data.push( { 'slug':row[0].slice(1,-1), 'viewCount':row[2] } ) );
-				 
-				 var slugs = [];
-				 resp.data.rows.forEach(  row =>  slugs.push( row[0].slice(1,-1) )   );
-				 var slugFilter = "slug:["+slugs.join()+"]";				 
+				 resp.data.rows.forEach(  row =>  data.push( { 'pagePath':row[0], 'viewCount':row[1] } ) );				 
 
 				 apiOptions = {				
 					include: 'author,authors,tags',					
-					limit: 'all',					
-					filter: slugFilter
+					limit: 'all'					
 				};
 
-				return proxy.api.posts.browse(apiOptions).then(function (resp2) {										
-					resp2.posts.forEach( post => { post.viewCount = data.find ( element => element.slug==post.slug ).viewCount; });
-					resp2.posts.sort((a,b) => b.viewCount-a.viewCount);
-					return resp2.posts.reduce((buffer,element)=>buffer+options.fn(element), '');						
+				return proxy.api.posts.browse(apiOptions).then(function (resp2) {														
+					resp2.posts.forEach( post => { 
+						var correspondingPost = data.find ( element => element.pagePath==proxy.metaData.getMetaDataUrl(post,false) );
+						if (correspondingPost) {
+							post.viewCount = correspondingPost.viewCount;
+						} else {
+							post.viewCount = -1;
+						}	
+					});					
+					resp2.posts.sort((a,b) => b.viewCount-a.viewCount);														
+					resp2.posts = resp2.posts.slice(0,maxItems);
+					return options.fn(resp2);					
 				});								                 
 			}).catch(function(err) { 
 				return err.toString();
