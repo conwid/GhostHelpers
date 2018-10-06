@@ -69,7 +69,7 @@ module.exports = function top(options) {
 						}	
 					});					
 					resp2.posts.sort((a,b) => b.viewCount-a.viewCount);														
-					resp2.posts = resp2.posts.slice(0,maxItems);
+					resp2.posts = resp2.posts.slice(0,maxItems).filter(item=>item.viewCount!=-1);
 					return options.fn(resp2);					
 				});								                 
 			}).catch(function(err) { 
